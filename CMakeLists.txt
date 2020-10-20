@@ -22,7 +22,7 @@ elseif (${GTENSOR_DEVICE} STREQUAL "hip")
   target_link_libraries(rocblas INTERFACE "/opt/rocm/lib/librocblas.so")
   target_include_directories(rocblas INTERFACE "/opt/rocm/include")
   add_library(rocsolver INTERFACE IMPORTED)
-  target_link_libraries(rocsolver "/opt/rocm/lib/librocsolver.so")
+  target_link_libraries(rocsolver INTERFACE "/opt/rocm/lib/librocsolver.so")
   target_include_directories(rocsolver INTERFACE "/opt/rocm/include")
 
   target_link_libraries(gpublas rocblas rocsolver)

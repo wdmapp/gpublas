@@ -141,7 +141,7 @@ void gpublas_zgetrf_batched(int n, gpublas_complex_double_t* d_Aarray[],
 }
 
 void gpublas_zgetrs_batched(int n, int nrhs,
-                            const gpublas_complex_double_t* d_Aarray[], int lda,
+                            gpublas_complex_double_t* const* d_Aarray, int lda,
                             const int* devIpiv,
                             gpublas_complex_double_t* d_Barray[], int ldb,
                             int batchSize, int* status) {
@@ -155,9 +155,9 @@ void gpublas_zgetrs_batched(int n, int nrhs,
         std::abort();
     }
 #elif defined(GTENSOR_DEVICE_HIP)
-    gtGpuCheck((hipError_t)rocsolver_zgetrs_batched(handle, 0, n, nrhs,
-                                                    d_Aarray, lda, devIpiv, n,
-                                                    d_Barray, ldb, batchSize));
+    gtGpuCheck((hipError_t)rocsolver_zgetrs_batched(
+        handle, rocblas_operation_none, n, nrhs, d_Aarray, lda, devIpiv, n,
+        d_Barray, ldb, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)
     // TODO: exception handling
     auto scratch_count = oneapi::mkl::lapack::getrs_batch_scratchpad_size(
