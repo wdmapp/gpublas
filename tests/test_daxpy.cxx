@@ -38,7 +38,7 @@ TEST(daxpy, daxpy1)
   gt::backend::host_allocator<T>::deallocate(h_x);
   gt::backend::device_allocator<T>::deallocate(d_x);
   gt::backend::host_allocator<T>::deallocate(h_y);
-  gt::backend::device_allocator<T>::deallocate(h_x);
+  gt::backend::device_allocator<T>::deallocate(d_y);
 }
 
 

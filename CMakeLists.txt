@@ -17,7 +17,7 @@ target_include_directories(gpublas PUBLIC include/)
 
 if (${GTENSOR_DEVICE} STREQUAL "cuda")
   target_link_libraries(gpublas "cublas")
-elseif(${GTENSOR_DEVICE} STREQUAL "hip")
+elseif (${GTENSOR_DEVICE} STREQUAL "hip")
   add_library(rocblas INTERFACE IMPORTED)
   target_link_libraries(rocblas INTERFACE "/opt/rocm/lib/librocblas.so")
   target_include_directories(rocblas INTERFACE "/opt/rocm/include")
@@ -26,7 +26,7 @@ elseif(${GTENSOR_DEVICE} STREQUAL "hip")
   target_include_directories(rocsolver INTERFACE "/opt/rocm/include")
 
   target_link_libraries(gpublas rocblas rocsolver)
-elseif(${GTENSOR_DEVICE} STREQUAL "sycl")
+elseif (${GTENSOR_DEVICE} STREQUAL "sycl")
   target_link_libraries(gpublas "onemkl")
 endif()
 
