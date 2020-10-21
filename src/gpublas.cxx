@@ -88,7 +88,7 @@ void gpublas_caxpy(int n, const gt::complex<float> a,
 */
 
 void gpublas_zdscal(int n, const double fac, gpublas_complex_double_t* arr,
-                    const int incx, int* status) {
+                    const int incx) {
 #ifdef GTENSOR_DEVICE_CUDA
     gtGpuCheck((cudaError_t)cublasZdscal(handle, n, &fac, arr, incx));
 #elif defined(GTENSOR_DEVICE_HIP)
@@ -102,7 +102,7 @@ void gpublas_zdscal(int n, const double fac, gpublas_complex_double_t* arr,
 
 /* ------------ copy --------------- */
 void gpublas_zcopy(int n, const gpublas_complex_double_t* x, int incx,
-                   gpublas_complex_double_t* y, int incy, int* status) {
+                   gpublas_complex_double_t* y, int incy) {
 #ifdef GTENSOR_DEVICE_CUDA
     gtGpuCheck((cudaError_t)cublasZcopy(handle, n, x, incx, y, incy));
 #elif defined(GTENSOR_DEVICE_HIP)
@@ -116,7 +116,7 @@ void gpublas_zcopy(int n, const gpublas_complex_double_t* x, int incx,
 
 void gpublas_zgetrf_batched(int n, gpublas_complex_double_t* d_Aarray[],
                             int lda, int* d_PivotArray, int* d_infoArray,
-                            int batchSize, int* status) {
+                            int batchSize) {
 #ifdef GTENSOR_DEVICE_CUDA
     gtGpuCheck((cudaError_t)cublasZgetrfBatched(
         handle, n, d_Aarray, lda, d_PivotArray, d_infoArray, batchSize));
@@ -144,7 +144,7 @@ void gpublas_zgetrs_batched(int n, int nrhs,
                             gpublas_complex_double_t* const* d_Aarray, int lda,
                             const int* devIpiv,
                             gpublas_complex_double_t* d_Barray[], int ldb,
-                            int batchSize, int* status) {
+                            int batchSize) {
 #ifdef GTENSOR_DEVICE_CUDA
     int info;
     gtGpuCheck((cudaError_t)cublasZgetrsBatched(
@@ -156,6 +156,65 @@ void gpublas_zgetrs_batched(int n, int nrhs,
     }
 #elif defined(GTENSOR_DEVICE_HIP)
     gtGpuCheck((hipError_t)rocsolver_zgetrs_batched(
+        handle, rocblas_operation_none, n, nrhs, d_Aarray, lda, devIpiv, n,
+        d_Barray, ldb, batchSize));
+#elif defined(GTENSOR_DEVICE_SYCL)
+    // TODO: exception handling
+    auto scratch_count = oneapi::mkl::lapack::getrs_batch_scratchpad_size(
+        *handle, n, n, lda, n * n, n, batchSize);
+    auto scratch = sycl::malloc<double>(*handle, scratch_count);
+
+    auto e = oneapi::mkl::lapack::getrs_batch(
+        *handle, oneapi::mkl::transpose::notrans, n, nrhs, d_Aarray, lda, n * n,
+        d_Barray, lbd, n * n, batchSize, scratch, scratch_count);
+    e.wait();
+
+    sycl::free(*handle, scratch);
+#endif
+}
+
+void gpublas_dgetrf_batched(int n, double* d_Aarray[],
+                            int lda, int* d_PivotArray, int* d_infoArray,
+                            int batchSize) {
+#ifdef GTENSOR_DEVICE_CUDA
+    gtGpuCheck((cudaError_t)cublasDgetrfBatched(
+        handle, n, d_Aarray, lda, d_PivotArray, d_infoArray, batchSize));
+#elif defined(GTENSOR_DEVICE_HIP)
+    // Note: extra args are for general n x m size, and strideP for the
+    // pivot array stride (we use n).
+    gtGpuCheck((hipError_t)rocsolver_dgetrf_batched(
+        handle, n, n, d_Aarray, lda, d_PivotArray, n, d_infoArray, batchSize));
+#elif defined(GTENSOR_DEVICE_SYCL)
+    // TODO: exception handling
+    auto scratch_count = oneapi::mkl::lapack::getrf_batch_scratchpad_size(
+        *handle, n, n, lda, n * n, n, batchSize);
+    auto scratch = sycl::malloc<double>(*handle, scratch_count);
+
+    auto e = oneapi::mkl::lapack::getrf_batch(
+        *handle, n, n, d_Aarray, lda, n * n, d_PivotArray, n, d_infoArray,
+        batchSize, scratch, scratch_count);
+    e.wait();
+
+    sycl::free(*handle, scratch);
+#endif
+}
+
+void gpublas_dgetrs_batched(int n, int nrhs,
+                            double* const* d_Aarray, int lda,
+                            const int* devIpiv,
+                            double* d_Barray[], int ldb,
+                            int batchSize) {
+#ifdef GTENSOR_DEVICE_CUDA
+    int info;
+    gtGpuCheck((cudaError_t)cublasDgetrsBatched(
+        handle, CUBLAS_OP_N, n, nrhs, d_Aarray, lda, devIpiv, d_Barray, ldb,
+        &info, batchSize));
+    if (info != 0) {
+        printf("error in ZgetrsBatched: info = %d\n", info);
+        std::abort();
+    }
+#elif defined(GTENSOR_DEVICE_HIP)
+    gtGpuCheck((hipError_t)rocsolver_dgetrs_batched(
         handle, rocblas_operation_none, n, nrhs, d_Aarray, lda, devIpiv, n,
         d_Barray, ldb, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)

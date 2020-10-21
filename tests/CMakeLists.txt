@@ -9,3 +9,5 @@ macro(add_gpublas_test name)
 endmacro()
 
 add_gpublas_test(test_axpy)
+add_gpublas_test(test_scal_copy)
+add_gpublas_test(test_getrfs)
