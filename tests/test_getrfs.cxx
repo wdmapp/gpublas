@@ -5,7 +5,46 @@
 #define DOUBLE_PREC
 #include "gpublas.h"
 
-TEST(getrfs, dgetrfs_batch1) {
+template <typename T>
+void set_A(T* h_A) {
+    // matlab/octave:
+    //  A = [1 2 2; 4 4 2; 4 6 4];
+    //  L,U,p = lu(A)
+    // first column
+    h_A[0] = 1;
+    h_A[1] = 4;
+    h_A[2] = 4;
+    // second column
+    h_A[3] = 2;
+    h_A[4] = 4;
+    h_A[5] = 6;
+    // third column
+    h_A[6] = 2;
+    h_A[7] = 2;
+    h_A[8] = 4;
+}
+
+template <typename T>
+void set_B_complex(T* h_B) {
+    // second matrix, complex
+    // matlab/octave:
+    //  B = [1+i 2-i 2; 4i 4 2; 4 6i 4];
+    //  L,U,p = lu(A2);
+    // first column
+    h_B[0] = T(1, 1);
+    h_B[1] = T(0, 4);
+    h_B[2] = T(4, 0);
+    // second column
+    h_B[3] = T(2, -1);
+    h_B[4] = T(4, 0);
+    h_B[5] = T(0, 6);
+    // third column
+    h_B[6] = T(2, 0);
+    h_B[7] = T(2, 0);
+    h_B[8] = T(4, 0);
+}
+
+TEST(getrfs, dgetrf_batch1) {
     constexpr int N = 3;
     constexpr int S = N * N;
     constexpr int batch_size = 1;
@@ -21,22 +60,7 @@ TEST(getrfs, dgetrfs_batch1) {
     int* h_info = gt::backend::host_allocator<int>::allocate(batch_size);
     int* d_info = gt::backend::device_allocator<int>::allocate(batch_size);
 
-    // matlab/octave:
-    //  A = [1 2 2; 4 4 2; 4 6 4];
-    //  L,U,p = lu(A)
-    // first column 1, 4, 4
-    h_A[0] = 1;
-    h_A[1] = 4;
-    h_A[2] = 4;
-    // second column 2, 4, 6
-    h_A[3] = 2;
-    h_A[4] = 4;
-    h_A[5] = 6;
-    // third column 2, 2, 4
-    h_A[6] = 2;
-    h_A[7] = 2;
-    h_A[8] = 4;
-
+    set_A(h_A);
     h_Aptr[0] = &d_A[0];
 
     gt::backend::device_copy_hd(h_A, d_A, batch_size * S);
@@ -88,7 +112,7 @@ TEST(getrfs, dgetrfs_batch1) {
     gt::backend::device_allocator<int>::deallocate(d_info);
 }
 
-TEST(getrfs, zgetrfs_batch2) {
+TEST(getrfs, zgetrf_batch2) {
     constexpr int N = 3;
     constexpr int S = N * N;
     constexpr int batch_size = 2;
@@ -104,39 +128,8 @@ TEST(getrfs, zgetrfs_batch2) {
     int* h_info = gt::backend::host_allocator<int>::allocate(batch_size);
     int* d_info = gt::backend::device_allocator<int>::allocate(batch_size);
 
-    // first matrix, real only
-    // matlab/octave:
-    //  A = [1 2 2; 4 4 2; 4 6 4];
-    //  L,U,p = lu(A)
-    // first column 1, 4, 4
-    h_A[0] = T(1, 0);
-    h_A[1] = T(4, 0);
-    h_A[2] = T(4, 0);
-    // second column 2, 4, 6
-    h_A[3] = T(2, 0);
-    h_A[4] = T(4, 0);
-    h_A[5] = T(6, 0);
-    // third column 2, 2, 4
-    h_A[6] = T(2, 0);
-    h_A[7] = T(2, 0);
-    h_A[8] = T(4, 0);
-
-    // second matrix, complex
-    // matlab/octave:
-    //  A2 = [1+i 2-i 2; 4i 4 2; 4 6i 4];
-    //  L,U,p = lu(A2);
-    // first column
-    h_A[ 9] = T(1, 1);
-    h_A[10] = T(0, 4);
-    h_A[11] = T(4, 0);
-    // second column
-    h_A[12] = T(2, -1);
-    h_A[13] = T(4, 0);
-    h_A[14] = T(0, 6);
-    // third column
-    h_A[15] = T(2, 0);
-    h_A[16] = T(2, 0);
-    h_A[17] = T(4, 0);
+    set_A(h_A);
+    set_B_complex(h_A + 9);
 
     h_Aptr[0] = &d_A[0];
     h_Aptr[1] = &d_A[9];
