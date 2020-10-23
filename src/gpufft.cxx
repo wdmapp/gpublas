@@ -38,7 +38,7 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
 #endif
 }
 
-void gpufft_plan_destory(gpufft_handle_t handle)
+void gpufft_plan_destroy(gpufft_handle_t handle)
 {
 #ifdef GTENSOR_DEVICE_CUDA
   auto result = cufftDestroy(handle);
