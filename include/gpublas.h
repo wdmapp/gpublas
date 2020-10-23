@@ -50,13 +50,14 @@ void gpublas_zdscal(int n, const double fac, gpublas_complex_double_t* arr,
 void gpublas_zcopy(int n, const gpublas_complex_double_t* x, int incx,
                    gpublas_complex_double_t* y, int incy);
 
-void gpublas_dgetrf_batched(int n, double* d_Aarray[],
-                            int lda, int* d_PivotArray, int* d_infoArray,
-                            int batchSize);
-void gpublas_zgetrs_batched(int n, int nrhs,
-                            double* const* d_Aarray, int lda,
-                            const int* devIpiv,
-                            double* d_Barray[], int ldb,
+void gpublas_dgemv(int m, int n, const double* alpha, const double* A, int lda,
+                   const double* x, int incx, const double* beta, double* y,
+                   int incy);
+
+void gpublas_dgetrf_batched(int n, double* d_Aarray[], int lda,
+                            int* d_PivotArray, int* d_infoArray, int batchSize);
+void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
+                            const int* devIpiv, double* d_Barray[], int ldb,
                             int batchSize);
 void gpublas_zgetrf_batched(int n, gpublas_complex_double_t* d_Aarray[],
                             int lda, int* d_PivotArray, int* d_infoArray,

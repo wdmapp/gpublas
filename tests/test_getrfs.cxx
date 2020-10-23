@@ -25,6 +25,29 @@ void set_A(T* h_A) {
 }
 
 template <typename T>
+void set_A_LU(T* h_A) {
+    // first column factored
+    h_A[0] = 4.0;
+    h_A[1] = 1.0;
+    h_A[2] = 0.25;
+    // second column
+    h_A[3] = 4.0;
+    h_A[4] = 2.0;
+    h_A[5] = 0.5;
+    // thrid column
+    h_A[6] = 2.0;
+    h_A[7] = 2.0;
+    h_A[8] = 0.5;
+}
+
+template <typename T>
+void set_A_piv(T* h_p) {
+    h_p[0] = 2;
+    h_p[1] = 3;
+    h_p[2] = 3;
+}
+
+template <typename T>
 void set_B_complex(T* h_B) {
     // second matrix, complex
     // matlab/octave:
@@ -110,6 +133,92 @@ TEST(getrfs, dgetrf_batch1) {
     gt::backend::device_allocator<int>::deallocate(d_p);
     gt::backend::host_allocator<int>::deallocate(h_info);
     gt::backend::device_allocator<int>::deallocate(d_info);
+}
+
+TEST(getrfs, dgetrs_batch1) {
+    constexpr int N = 3;
+    constexpr int NRHS = 2;
+    constexpr int S = N * N;
+    constexpr int batch_size = 1;
+    using T = double;
+
+    T** h_Aptr = gt::backend::host_allocator<T*>::allocate(batch_size);
+    T** d_Aptr = gt::backend::device_allocator<T*>::allocate(batch_size);
+    T* h_A = gt::backend::host_allocator<T>::allocate(batch_size * S);
+    T* d_A = gt::backend::device_allocator<T>::allocate(batch_size * S);
+
+    T** h_Bptr = gt::backend::host_allocator<T*>::allocate(batch_size);
+    T** d_Bptr = gt::backend::device_allocator<T*>::allocate(batch_size);
+    T* h_B = gt::backend::host_allocator<T>::allocate(batch_size * N * NRHS);
+    T* d_B = gt::backend::device_allocator<T>::allocate(batch_size * N * NRHS);
+
+    int* h_p = gt::backend::host_allocator<int>::allocate(batch_size * N);
+    int* d_p = gt::backend::device_allocator<int>::allocate(batch_size * N);
+    //int* h_info = gt::backend::host_allocator<int>::allocate(batch_size);
+    //int* d_info = gt::backend::device_allocator<int>::allocate(batch_size);
+
+    set_A_LU(h_A);
+    h_Aptr[0] = &d_A[0];
+    set_A_piv(h_p);
+
+    // col vector [11; 18; 28]
+    h_B[0] = 11;
+    h_B[1] = 18;
+    h_B[2] = 28;
+    // col vector [73; 78; 154]
+    h_B[3] = 73;
+    h_B[4] = 78;
+    h_B[5] = 154;
+    h_Bptr[0] = &d_B[0];
+    h_Bptr[1] = &d_B[3];
+
+    gt::backend::device_copy_hd(h_Aptr, d_Aptr, batch_size);
+    gt::backend::device_copy_hd(h_A, d_A, batch_size * S);
+    gt::backend::device_copy_hd(h_Bptr, d_Bptr, batch_size);
+    gt::backend::device_copy_hd(h_B, d_B, batch_size * N * NRHS);
+    gt::backend::device_copy_hd(h_B, d_B, batch_size * N * NRHS);
+    gt::backend::device_copy_hd(h_p, d_p, batch_size * N);
+
+    gpublas_create();
+
+    //gpublas_dgetrf_batched(N, d_Aptr, N, d_p, d_info, batch_size);
+    gpublas_dgetrs_batched(N, NRHS, d_Aptr, N, d_p, d_Bptr, N, batch_size);
+
+    gpublas_destroy();
+
+    //gt::backend::device_copy_dh(d_info, h_info, batch_size);
+    gt::backend::device_copy_dh(d_B, h_B, batch_size * N * NRHS);
+
+    // solution vector [1; 2; 3]
+    EXPECT_EQ(h_B[0], 1.0);
+    EXPECT_EQ(h_B[1], 2.0);
+    EXPECT_EQ(h_B[2], 3.0);
+    // solution vector [-3; 7; 31]
+    EXPECT_EQ(h_B[3], -3.0);
+    EXPECT_EQ(h_B[4],  7.0);
+    EXPECT_EQ(h_B[5], 31.0);
+
+    /*
+    for (int b = 0; b < batch_size; b++) {
+        // A_i factored successfully
+        EXPECT_EQ(h_info[b], 0);
+    }
+    */
+
+    gt::backend::host_allocator<T*>::deallocate(h_Aptr);
+    gt::backend::device_allocator<T*>::deallocate(d_Aptr);
+    gt::backend::host_allocator<T>::deallocate(h_A);
+    gt::backend::device_allocator<T>::deallocate(d_A);
+
+    gt::backend::host_allocator<T>::deallocate(h_B);
+    gt::backend::device_allocator<T>::deallocate(d_B);
+    gt::backend::host_allocator<T*>::deallocate(h_Bptr);
+    gt::backend::device_allocator<T*>::deallocate(d_Bptr);
+
+    gt::backend::host_allocator<int>::deallocate(h_p);
+    gt::backend::device_allocator<int>::deallocate(d_p);
+    //gt::backend::host_allocator<int>::deallocate(h_info);
+    //gt::backend::device_allocator<int>::deallocate(d_info);
 }
 
 TEST(getrfs, zgetrf_batch2) {
