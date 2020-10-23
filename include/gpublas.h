@@ -57,15 +57,14 @@ void gpublas_dgemv(int m, int n, const double* alpha, const double* A, int lda,
 void gpublas_dgetrf_batched(int n, double* d_Aarray[], int lda,
                             int* d_PivotArray, int* d_infoArray, int batchSize);
 void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
-                            const int* devIpiv, double* d_Barray[], int ldb,
+                            const int* devIpiv, double** d_Barray, int ldb,
                             int batchSize);
-void gpublas_zgetrf_batched(int n, gpublas_complex_double_t* d_Aarray[],
-                            int lda, int* d_PivotArray, int* d_infoArray,
-                            int batchSize);
+void gpublas_zgetrf_batched(int n, gpublas_complex_double_t** d_Aarray, int lda,
+                            int* d_PivotArray, int* d_infoArray, int batchSize);
 void gpublas_zgetrs_batched(int n, int nrhs,
                             gpublas_complex_double_t* const* d_Aarray, int lda,
                             const int* devIpiv,
-                            gpublas_complex_double_t* d_Barray[], int ldb,
+                            gpublas_complex_double_t** d_Barray, int ldb,
                             int batchSize);
 
 //#ifdef __cplusplus
