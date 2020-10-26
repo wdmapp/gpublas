@@ -110,8 +110,10 @@ TEST(getrfs, dgetrf_batch1)
   T* h_A = gt::backend::host_allocator<T>::allocate(batch_size * S);
   T* d_A = gt::backend::device_allocator<T>::allocate(batch_size * S);
 
-  int* h_p = gt::backend::host_allocator<int>::allocate(batch_size * N);
-  int* d_p = gt::backend::device_allocator<int>::allocate(batch_size * N);
+  auto h_p =
+    gt::backend::host_allocator<gpublas_index_t>::allocate(batch_size * N);
+  auto d_p =
+    gt::backend::device_allocator<gpublas_index_t>::allocate(batch_size * N);
   int* h_info = gt::backend::host_allocator<int>::allocate(batch_size);
   int* d_info = gt::backend::device_allocator<int>::allocate(batch_size);
 
@@ -161,8 +163,8 @@ TEST(getrfs, dgetrf_batch1)
   gt::backend::host_allocator<T>::deallocate(h_A);
   gt::backend::device_allocator<T>::deallocate(d_A);
 
-  gt::backend::host_allocator<int>::deallocate(h_p);
-  gt::backend::device_allocator<int>::deallocate(d_p);
+  gt::backend::host_allocator<gpublas_index_t>::deallocate(h_p);
+  gt::backend::device_allocator<gpublas_index_t>::deallocate(d_p);
   gt::backend::host_allocator<int>::deallocate(h_info);
   gt::backend::device_allocator<int>::deallocate(d_info);
 }
@@ -185,8 +187,10 @@ TEST(getrfs, dgetrs_batch1)
   T* h_B = gt::backend::host_allocator<T>::allocate(batch_size * N * NRHS);
   T* d_B = gt::backend::device_allocator<T>::allocate(batch_size * N * NRHS);
 
-  int* h_p = gt::backend::host_allocator<int>::allocate(batch_size * N);
-  int* d_p = gt::backend::device_allocator<int>::allocate(batch_size * N);
+  auto h_p =
+    gt::backend::host_allocator<gpublas_index_t>::allocate(batch_size * N);
+  auto d_p =
+    gt::backend::device_allocator<gpublas_index_t>::allocate(batch_size * N);
 
   set_A_LU(h_A);
   h_Aptr[0] = &d_A[0];
@@ -237,8 +241,8 @@ TEST(getrfs, dgetrs_batch1)
   gt::backend::host_allocator<T*>::deallocate(h_Bptr);
   gt::backend::device_allocator<T*>::deallocate(d_Bptr);
 
-  gt::backend::host_allocator<int>::deallocate(h_p);
-  gt::backend::device_allocator<int>::deallocate(d_p);
+  gt::backend::host_allocator<gpublas_index_t>::deallocate(h_p);
+  gt::backend::device_allocator<gpublas_index_t>::deallocate(d_p);
 }
 
 TEST(getrfs, zgetrf_batch2)
@@ -253,8 +257,10 @@ TEST(getrfs, zgetrf_batch2)
   T* h_A = gt::backend::host_allocator<T>::allocate(batch_size * S);
   T* d_A = gt::backend::device_allocator<T>::allocate(batch_size * S);
 
-  int* h_p = gt::backend::host_allocator<int>::allocate(batch_size * N);
-  int* d_p = gt::backend::device_allocator<int>::allocate(batch_size * N);
+  auto h_p =
+    gt::backend::host_allocator<gpublas_index_t>::allocate(batch_size * N);
+  auto d_p =
+    gt::backend::device_allocator<gpublas_index_t>::allocate(batch_size * N);
   int* h_info = gt::backend::host_allocator<int>::allocate(batch_size);
   int* d_info = gt::backend::device_allocator<int>::allocate(batch_size);
 
@@ -330,8 +336,8 @@ TEST(getrfs, zgetrf_batch2)
   gt::backend::host_allocator<T>::deallocate(h_A);
   gt::backend::device_allocator<T>::deallocate(d_A);
 
-  gt::backend::host_allocator<int>::deallocate(h_p);
-  gt::backend::device_allocator<int>::deallocate(d_p);
+  gt::backend::host_allocator<gpublas_index_t>::deallocate(h_p);
+  gt::backend::device_allocator<gpublas_index_t>::deallocate(d_p);
   gt::backend::host_allocator<int>::deallocate(h_info);
   gt::backend::device_allocator<int>::deallocate(d_info);
 }
@@ -354,8 +360,10 @@ TEST(getrfs, zgetrs_batch2)
   T* h_B = gt::backend::host_allocator<T>::allocate(batch_size * N * NRHS);
   T* d_B = gt::backend::device_allocator<T>::allocate(batch_size * N * NRHS);
 
-  int* h_p = gt::backend::host_allocator<int>::allocate(batch_size * N);
-  int* d_p = gt::backend::device_allocator<int>::allocate(batch_size * N);
+  auto h_p =
+    gt::backend::host_allocator<gpublas_index_t>::allocate(batch_size * N);
+  auto d_p =
+    gt::backend::device_allocator<gpublas_index_t>::allocate(batch_size * N);
 
   set_A_LU(h_A);
   set_B_LU(h_A + S);
@@ -427,6 +435,6 @@ TEST(getrfs, zgetrs_batch2)
   gt::backend::host_allocator<T*>::deallocate(h_Bptr);
   gt::backend::device_allocator<T*>::deallocate(d_Bptr);
 
-  gt::backend::host_allocator<int>::deallocate(h_p);
-  gt::backend::device_allocator<int>::deallocate(d_p);
+  gt::backend::host_allocator<gpublas_index_t>::deallocate(h_p);
+  gt::backend::device_allocator<gpublas_index_t>::deallocate(d_p);
 }

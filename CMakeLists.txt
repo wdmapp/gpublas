@@ -37,8 +37,24 @@ elseif (${GTENSOR_DEVICE} STREQUAL "hip")
   target_link_libraries(gpublas rocblas rocsolver)
   target_link_libraries(gpufft rocfft)
 elseif (${GTENSOR_DEVICE} STREQUAL "sycl")
-  target_link_libraries(gpublas "onemkl")
-  target_link_libraries(gpufft "onemkl")
+  add_library(oneapi_mkl_sycl INTERFACE IMPORTED)
+  #target_compile_options(oneapi_mkl_sycl INTERFACE -fsycl)
+  #target_link_options(oneapi_mkl_sycl INTERFACE -fsycl)
+  target_include_directories(oneapi_mkl_sycl
+                             INTERFACE "/opt/intel/oneapi/mkl/latest/include")
+  target_link_libraries(oneapi_mkl_sycl INTERFACE
+              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_sycl.so")
+  target_link_libraries(oneapi_mkl_sycl INTERFACE
+              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_intel_lp64.so")
+  target_link_libraries(oneapi_mkl_sycl INTERFACE
+              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_sequential.so")
+  target_link_libraries(oneapi_mkl_sycl INTERFACE
+              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_core.so")
+  target_link_libraries(oneapi_mkl_sycl INTERFACE
+              "/opt/intel/oneapi/compiler/latest/linux/lib/libsycl.so.5")
+
+  target_link_libraries(gpublas oneapi_mkl_sycl)
+  target_link_libraries(gpufft oneapi_mkl_sycl)
 endif()
 
 include(CTest)

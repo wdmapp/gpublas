@@ -58,7 +58,7 @@ void gpublas_zaxpy(int n, const gpublas_complex_double_t* a,
   gtGpuCheck((hipError_t)rocblas_zaxpy(handle, n, a, x, incx, y, incy));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto e = oneapi::mkl::blas::axpy(*handle, n, a, x, incx, y, incy);
+  auto e = oneapi::mkl::blas::axpy(*handle, n, *a, x, incx, y, incy);
   e.wait();
 #endif
 }
@@ -72,7 +72,7 @@ void gpublas_daxpy(int n, const double* a, const double* x, int incx, double* y,
   gtGpuCheck((hipError_t)rocblas_daxpy(handle, n, a, x, incx, y, incy));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto e = oneapi::mkl::blas::axpy(*handle, n, a, x, incx, y, incy);
+  auto e = oneapi::mkl::blas::axpy(*handle, n, *a, x, incx, y, incy);
   e.wait();
 #endif
 }
@@ -118,7 +118,7 @@ void gpublas_zcopy(int n, const gpublas_complex_double_t* x, int incx,
   gtGpuCheck((hipError_t)rocblas_zcopy(handle, n, x, incx, y, incy));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto e = oneapi::mkl::blas::copy(*handle, n, fac, arr, incx);
+  auto e = oneapi::mkl::blas::copy(*handle, n, x, incx, y, incy);
   e.wait();
 #endif
 }
@@ -136,14 +136,15 @@ void gpublas_dgemv(int m, int n, const double* alpha, const double* A, int lda,
                                        alpha, A, lda, x, incx, beta, y, incy));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto e = oneapi::mkl::blas::gemv(*handle, m, n, alpha, A, lda, x, incx, beta,
-                                   y, incy);
+  auto e = oneapi::mkl::blas::gemv(*handle, oneapi::mkl::transpose::nontrans, m,
+                                   n, *alpha, A, lda, x, incx, *beta, y, incy);
   e.wait();
 #endif
 }
 
 void gpublas_zgetrf_batched(int n, gpublas_complex_double_t** d_Aarray, int lda,
-                            int* d_PivotArray, int* d_infoArray, int batchSize)
+                            gpublas_index_t* d_PivotArray, int* d_infoArray,
+                            int batchSize)
 {
 #ifdef GTENSOR_DEVICE_CUDA
   gtGpuCheck((cudaError_t)cublasZgetrfBatched(
@@ -155,22 +156,24 @@ void gpublas_zgetrf_batched(int n, gpublas_complex_double_t** d_Aarray, int lda,
     handle, n, n, d_Aarray, lda, d_PivotArray, n, d_infoArray, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto scratch_count = oneapi::mkl::lapack::getrf_batch_scratchpad_size(
-    *handle, n, n, lda, n * n, n, batchSize);
-  auto scratch = sycl::malloc<double>(*handle, scratch_count);
+  auto scratch_count =
+    oneapi::mkl::lapack::getrf_batch_scratchpad_size<gpublas_complex_double_t>(
+      *handle, n, n, lda, n * n, n, batchSize);
+  auto scratch =
+    sycl::malloc_device<gpublas_complex_double_t>(scratch_count, *handle);
 
-  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray, lda, n * n,
-                                            d_PivotArray, n, d_infoArray,
-                                            batchSize, scratch, scratch_count);
+  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray[0], lda,
+                                            n * n, d_PivotArray, n, batchSize,
+                                            scratch, scratch_count);
   e.wait();
 
-  sycl::free(*handle, scratch);
+  sycl::free(scratch, *handle);
 #endif
 }
 
 void gpublas_zgetrs_batched(int n, int nrhs,
                             gpublas_complex_double_t* const* d_Aarray, int lda,
-                            const int* devIpiv,
+                            gpublas_index_t* devIpiv,
                             gpublas_complex_double_t** d_Barray, int ldb,
                             int batchSize)
 {
@@ -190,21 +193,25 @@ void gpublas_zgetrs_batched(int n, int nrhs,
     d_Barray, ldb, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto scratch_count = oneapi::mkl::lapack::getrs_batch_scratchpad_size(
-    *handle, n, n, lda, n * n, n, batchSize);
-  auto scratch = sycl::malloc<double>(*handle, scratch_count);
+  auto scratch_count =
+    oneapi::mkl::lapack::getrs_batch_scratchpad_size<gpublas_complex_double_t>(
+      *handle, oneapi::mkl::transpose::nontrans, n, nrhs, lda, n * n, n, ldb,
+      n * nrhs, batchSize);
+  auto scratch =
+    sycl::malloc_device<gpublas_complex_double_t>(scratch_count, *handle);
 
   auto e = oneapi::mkl::lapack::getrs_batch(
-    *handle, oneapi::mkl::transpose::notrans, n, nrhs, d_Aarray, lda, n * n,
-    d_Barray, lbd, n * n, batchSize, scratch, scratch_count);
+    *handle, oneapi::mkl::transpose::nontrans, n, nrhs, d_Aarray[0], lda, n * n,
+    devIpiv, n, d_Barray[0], ldb, n * nrhs, batchSize, scratch, scratch_count);
   e.wait();
 
-  sycl::free(*handle, scratch);
+  sycl::free(scratch, *handle);
 #endif
 }
 
 void gpublas_dgetrf_batched(int n, double** d_Aarray, int lda,
-                            int* d_PivotArray, int* d_infoArray, int batchSize)
+                            gpublas_index_t* d_PivotArray, int* d_infoArray,
+                            int batchSize)
 {
 #ifdef GTENSOR_DEVICE_CUDA
   gtGpuCheck((cudaError_t)cublasDgetrfBatched(
@@ -216,22 +223,22 @@ void gpublas_dgetrf_batched(int n, double** d_Aarray, int lda,
     handle, n, n, d_Aarray, lda, d_PivotArray, n, d_infoArray, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)
   // TODO: exception handling
-  auto scratch_count = oneapi::mkl::lapack::getrf_batch_scratchpad_size(
+  auto scratch_count = oneapi::mkl::lapack::getrf_batch_scratchpad_size<double>(
     *handle, n, n, lda, n * n, n, batchSize);
-  auto scratch = sycl::malloc<double>(*handle, scratch_count);
+  auto scratch = sycl::malloc_device<double>(scratch_count, *handle);
 
-  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray, lda, n * n,
-                                            d_PivotArray, n, d_infoArray,
-                                            batchSize, scratch, scratch_count);
+  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray[0], lda,
+                                            n * n, d_PivotArray, n, batchSize,
+                                            scratch, scratch_count);
   e.wait();
 
-  sycl::free(*handle, scratch);
+  sycl::free(scratch, *handle);
 #endif
 }
 
 void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
-                            const int* devIpiv, double** d_Barray, int ldb,
-                            int batchSize)
+                            gpublas_index_t* devIpiv, double** d_Barray,
+                            int ldb, int batchSize)
 {
 #ifdef GTENSOR_DEVICE_CUDA
   int info;
@@ -248,16 +255,16 @@ void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
     handle, rocblas_operation_none, n, nrhs, d_Aarray, lda, devIpiv, n,
     d_Barray, ldb, batchSize));
 #elif defined(GTENSOR_DEVICE_SYCL)
-  // TODO: exception handling
-  auto scratch_count = oneapi::mkl::lapack::getrs_batch_scratchpad_size(
-    *handle, n, n, lda, n * n, n, batchSize);
-  auto scratch = sycl::malloc<double>(*handle, scratch_count);
+  oneapi::mkl::transpose t = oneapi::mkl::transpose::nontrans;
+  auto scratch_count = oneapi::mkl::lapack::getrs_batch_scratchpad_size<double>(
+    *handle, t, n, nrhs, lda, n * n, n, ldb, n, batchSize);
+  auto scratch = sycl::malloc_device<double>(scratch_count, *handle);
 
   auto e = oneapi::mkl::lapack::getrs_batch(
-    *handle, oneapi::mkl::transpose::notrans, n, nrhs, d_Aarray, lda, n * n,
-    d_Barray, lbd, n * n, batchSize, scratch, scratch_count);
+    *handle, t, n, nrhs, d_Aarray[0], lda, n * n, devIpiv, n, d_Barray[0], ldb,
+    n * nrhs, batchSize, scratch, scratch_count);
   e.wait();
 
-  sycl::free(*handle, scratch);
+  sycl::free(scratch, *handle);
 #endif
 }

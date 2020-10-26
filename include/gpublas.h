@@ -7,6 +7,7 @@ typedef cublasHandle_t gpublas_handle_t;
 typedef cudaStream_t gpublas_stream_t;
 typedef cuDoubleComplex gpublas_complex_double_t;
 typedef cuComplex gpublas_complex_float_t;
+typedef int gpublas_index_t;
 
 #elif defined(GTENSOR_DEVICE_HIP)
 
@@ -16,6 +17,7 @@ typedef rocblas_handle gpublas_handle_t;
 typedef hipStream_t gpublas_stream_t;
 typedef rocblas_double_complex gpublas_complex_double_t;
 typedef rocblas_float_complex gpublas_complex_float_t;
+typedef int gpublas_index_t;
 
 #elif defined(GTENSOR_DEVICE_SYCL)
 
@@ -26,6 +28,7 @@ typedef cl::sycl::queue* gpublas_stream_t;
 
 typedef gt::complex<double> gpublas_complex_double_t;
 typedef gt::complex<float> gpublas_complex_float_t;
+typedef std::int64_t gpublas_index_t;
 #endif
 
 //#ifdef __cplusplus
@@ -55,15 +58,17 @@ void gpublas_dgemv(int m, int n, const double* alpha, const double* A, int lda,
                    int incy);
 
 void gpublas_dgetrf_batched(int n, double* d_Aarray[], int lda,
-                            int* d_PivotArray, int* d_infoArray, int batchSize);
-void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
-                            const int* devIpiv, double** d_Barray, int ldb,
+                            gpublas_index_t* d_PivotArray, int* d_infoArray,
                             int batchSize);
+void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
+                            gpublas_index_t* devIpiv, double** d_Barray,
+                            int ldb, int batchSize);
 void gpublas_zgetrf_batched(int n, gpublas_complex_double_t** d_Aarray, int lda,
-                            int* d_PivotArray, int* d_infoArray, int batchSize);
+                            gpublas_index_t* d_PivotArray, int* d_infoArray,
+                            int batchSize);
 void gpublas_zgetrs_batched(int n, int nrhs,
                             gpublas_complex_double_t* const* d_Aarray, int lda,
-                            const int* devIpiv,
+                            gpublas_index_t* devIpiv,
                             gpublas_complex_double_t** d_Barray, int ldb,
                             int batchSize);
 

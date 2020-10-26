@@ -28,6 +28,8 @@ TEST(fft, d2z_1d)
   h_A[2] = -1;
   h_A[3] = 4;
 
+  // zero output array, rocfft at least does not zero padding elements
+  // for real to complex transform
   gt::backend::device_memset(d_B, 0, batch_size * N * sizeof(*d_B));
 
   gt::backend::device_copy_hd(h_A, d_A, batch_size * N);

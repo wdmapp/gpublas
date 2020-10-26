@@ -36,10 +36,35 @@ typedef hipfftComplex gpufft_complex_t;
 
 #elif defined(GTENSOR_DEVICE_SYCL)
 
+#include <vector>
 #include "CL/sycl.hpp"
 #include "oneapi/mkl.hpp"
-typedef cl::sycl::queue* gpublas_handle_t;
-typedef cl::sycl::queue* gpublas_stream_t;
+#include "oneapi/mkl/dfti.hpp"
+
+typedef enum gpufft_transform_enum
+{
+  GPUFFT_R2C = 0x2a, // Real to complex (interleaved)
+  GPUFFT_C2R = 0x2c, // Complex (interleaved) to real
+  GPUFFT_C2C = 0x29, // Complex to complex (interleaved)
+  GPUFFT_D2Z = 0x6a, // Double to double-complex (interleaved)
+  GPUFFT_Z2D = 0x6c, // Double-complex (interleaved) to double
+  GPUFFT_Z2Z = 0x69  // Double-complex to double-complex (interleaved)
+} gpufft_transform_t;
+
+typedef void* gpufft_handle_t;
+typedef cl::sycl::queue* gpufft_stream_t;
+
+typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
+                                     oneapi::mkl::dft::domain::REAL>
+  gpufft_double_handle_t;
+typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
+                                     oneapi::mkl::dft::domain::REAL>
+  gpufft_single_handle_t;
+
+typedef double gpufft_double_real_t;
+typedef float gpufft_real_t;
+typedef gt::complex<double> gpufft_double_complex_t;
+typedef gt::complex<float> gpufft_complex_t;
 #endif
 
 #ifdef __cplusplus
