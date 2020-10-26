@@ -58,6 +58,8 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
   h->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
   h->set_value(oneapi::mkl::dft::config_param::REAL_STORAGE,
                DFTI_REAL_COMPLEX);
+  h->set_value(oneapi::mkl::dft::config_param::CONJUGATE_EVEN_STORAGE,
+               DFTI_REAL_COMPLEX);
   cl::sycl::queue& q = gt::backend::sycl::get_queue();
   h->commit(q);
   *handle = static_cast<void*>(h);
@@ -89,8 +91,8 @@ void gpufft_exec_z2d(gpufft_handle_t handle, gpufft_double_complex_t* indata,
   assert(result == rocfft_success);
 #elif defined(GTENSOR_DEVICE_SYCL)
   auto h = static_cast<gpufft_double_handle_t*>(handle);
-  auto e = oneapi::mkl::dft::compute_backward(*h, indata, outdata);
-  oneapi::mkl::dft::compute_backward(*h, indata, outdata);
+  auto indata_double = reinterpret_cast<double*>(indata);
+  auto e = oneapi::mkl::dft::compute_backward(*h, indata_double, outdata);
   e.wait();
 #endif
 }
@@ -106,7 +108,8 @@ void gpufft_exec_d2z(gpufft_handle_t handle, gpufft_double_real_t* indata,
   assert(result == rocfft_success);
 #elif defined(GTENSOR_DEVICE_SYCL)
   auto h = static_cast<gpufft_double_handle_t*>(handle);
-  auto e = oneapi::mkl::dft::compute_forward(*h, indata, outdata);
+  auto outdata_double = reinterpret_cast<double*>(outdata);
+  auto e = oneapi::mkl::dft::compute_forward(*h, indata, outdata_double);
   e.wait();
 #endif
 }
