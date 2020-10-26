@@ -38,8 +38,9 @@ typedef hipfftComplex gpufft_complex_t;
 
 #include <vector>
 #include "CL/sycl.hpp"
-#include "oneapi/mkl.hpp"
+//#include "oneapi/mkl.hpp"
 #include "oneapi/mkl/dfti.hpp"
+#include "mkl.h"
 
 typedef enum gpufft_transform_enum
 {
