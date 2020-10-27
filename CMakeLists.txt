@@ -40,18 +40,27 @@ elseif (${GTENSOR_DEVICE} STREQUAL "sycl")
   add_library(oneapi_mkl_sycl INTERFACE IMPORTED)
   #target_compile_options(oneapi_mkl_sycl INTERFACE -fsycl)
   #target_link_options(oneapi_mkl_sycl INTERFACE -fsycl)
+  if (NOT DEFINED ONEAPIROOT)
+    set(ONEAPIROOT "/opt/intel/oneapi")
+  endif()
+  if (NOT DEFINED MKLROOT)
+    set(MKLROOT "${ONEAPIROOT}/mkl/latest")
+  endif()
+  if (NOT DEFINED CMPROOT)
+    set(CMPROOT "${ONEAPIROOT}/compiler/latest/linux")
+  endif()
   target_include_directories(oneapi_mkl_sycl
-                             INTERFACE "/opt/intel/oneapi/mkl/latest/include")
+                             INTERFACE "${MKLROOT}/include")
   target_link_libraries(oneapi_mkl_sycl INTERFACE
-              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_sycl.so")
+              "${MKLROOT}/lib/intel64/libmkl_sycl.so")
   target_link_libraries(oneapi_mkl_sycl INTERFACE
-              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_intel_lp64.so")
+              "${MKLROOT}/lib/intel64/libmkl_intel_lp64.so")
   target_link_libraries(oneapi_mkl_sycl INTERFACE
-              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_sequential.so")
+              "${MKLROOT}/lib/intel64/libmkl_sequential.so")
   target_link_libraries(oneapi_mkl_sycl INTERFACE
-              "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_core.so")
-  target_link_libraries(oneapi_mkl_sycl INTERFACE
-              "/opt/intel/oneapi/compiler/latest/linux/lib/libsycl.so.5")
+              "${MKLROOT}/lib/intel64/libmkl_core.so")
+  #target_link_libraries(oneapi_mkl_sycl INTERFACE
+  #                     "${CMPROOT}/lib/libsycl.so.5")
 
   target_link_libraries(gpublas oneapi_mkl_sycl)
   target_link_libraries(gpufft oneapi_mkl_sycl)

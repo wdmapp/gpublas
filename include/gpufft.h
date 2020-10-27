@@ -57,10 +57,10 @@ typedef cl::sycl::queue* gpufft_stream_t;
 
 typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
                                      oneapi::mkl::dft::domain::REAL>
-  gpufft_double_handle_t;
+  gpufft_double_descriptor_t;
 typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
                                      oneapi::mkl::dft::domain::REAL>
-  gpufft_single_handle_t;
+  gpufft_single_descriptor_t;
 
 typedef double gpufft_double_real_t;
 typedef float gpufft_real_t;
