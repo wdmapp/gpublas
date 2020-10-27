@@ -48,53 +48,49 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
     auto h = new gpufft_double_descriptor_t(dims);
   }
   */
-  gpufft_double_descriptor_t* h;
-
+  gpufft_double_descriptor_t *h;
   try {
-    if (rank == 1) {
-      h = new gpufft_double_descriptor_t(n[0]);
-    } else {
+    if (rank > 1) {
       std::vector<MKL_LONG> dims(rank);
       for (int i = 0; i < rank; i++) {
         dims[i] = n[i];
       }
       assert(dims.size() == rank);
-
-      h = new gpufft_double_descriptor_t(dims);
+    } else {
+      h = new gpufft_double_descriptor_t(n[0]);
     }
+
+    // set up strides arrays
+    // TODO: the default generally does the right thing based on dims. Perhaps
+    // we should simplify the interface, and do the same to calculate strides
+    // and distance for the other backends.
+    // TODO: is this correct column major?
+    std::int64_t rstrides[rank+1];
+    std::int64_t cstrides[rank+1];
+    rstrides[0] = 0;
+    cstrides[0] = 0;
+    std::int64_t rs = 1;
+    std::int64_t cs = 1;
+    for (int i = 1; i <= rank; i++) {
+      rstrides[i] = rs;
+      cstrides[i] = cs;
+      rs *= istride;
+      cs *= ostride;
+    }
+
+    h->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS,
+                 batchSize);
+    h->set_value(oneapi::mkl::dft::config_param::INPUT_STRIDES, rstrides);
+    h->set_value(oneapi::mkl::dft::config_param::OUTPUT_STRIDES, cstrides);
+    h->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
+    h->set_value(oneapi::mkl::dft::config_param::CONJUGATE_EVEN_STORAGE,
+                 DFTI_COMPLEX_COMPLEX);
+    h->commit(gt::backend::sycl::get_queue());
+    *handle = h;
   } catch(std::exception const& e) {
     std::cerr << "Error creating dft descriptor:" << e.what() << std::endl;
     abort();
   }
-
-  try {
-    /*
-    h->set_value(oneapi::mkl::dft::config_param::INPUT_STRIDES, istride);
-    h->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, 0);
-    h->set_value(oneapi::mkl::dft::config_param::OUTPUT_STRIDES, ostride);
-    h->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, 0);
-    */
-    h->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS,
-                 batchSize);
-    h->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
-    h->set_value(oneapi::mkl::dft::config_param::REAL_STORAGE,
-                 DFTI_REAL_REAL);
-    h->set_value(oneapi::mkl::dft::config_param::CONJUGATE_EVEN_STORAGE,
-                 DFTI_COMPLEX_COMPLEX);
-  } catch(std::exception const& e) {
-    std::cerr << "Error setting values on dft descriptor:" << e.what()
-              << std::endl;
-    abort();
-  }
-
-  try {
-    h->commit(gt::backend::sycl::get_queue());
-  } catch(std::exception const& e) {
-    std::cerr << "Error commiting dft descriptor:" << e.what() << std::endl;
-    abort();
-  }
-
-  *handle = static_cast<void*>(h);
 #endif
 }
 
@@ -107,8 +103,7 @@ void gpufft_plan_destroy(gpufft_handle_t handle)
   auto result = hipfftDestroy(handle);
   assert(result == rocfft_success);
 #elif defined(GTENSOR_DEVICE_SYCL)
-  auto h = static_cast<gpufft_double_descriptor_t*>(handle);
-  delete h;
+  delete handle;
 #endif
 }
 
@@ -122,9 +117,9 @@ void gpufft_exec_z2d(gpufft_handle_t handle, gpufft_double_complex_t* indata,
   auto result = hipfftExecZ2D(handle, indata, outdata);
   assert(result == rocfft_success);
 #elif defined(GTENSOR_DEVICE_SYCL)
-  auto h = static_cast<gpufft_double_descriptor_t*>(handle);
+  //auto h = static_cast<gpufft_double_descriptor_t*>(handle);
   auto indata_double = reinterpret_cast<double*>(indata);
-  auto e = oneapi::mkl::dft::compute_backward(*h, indata_double, outdata);
+  auto e = oneapi::mkl::dft::compute_backward(*handle, indata_double, outdata);
   e.wait();
 #endif
 }
@@ -139,9 +134,9 @@ void gpufft_exec_d2z(gpufft_handle_t handle, gpufft_double_real_t* indata,
   auto result = hipfftExecD2Z(handle, indata, outdata);
   assert(result == rocfft_success);
 #elif defined(GTENSOR_DEVICE_SYCL)
-  auto h = static_cast<gpufft_double_descriptor_t*>(handle);
+  //auto h = static_cast<gpufft_double_descriptor_t*>(handle);
   auto outdata_double = reinterpret_cast<double*>(outdata);
-  auto e = oneapi::mkl::dft::compute_forward(*h, indata, outdata_double);
+  auto e = oneapi::mkl::dft::compute_forward(*handle, indata, outdata_double);
   e.wait();
 #endif
 }

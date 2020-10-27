@@ -52,15 +52,16 @@ typedef enum gpufft_transform_enum
   GPUFFT_Z2Z = 0x69  // Double-complex to double-complex (interleaved)
 } gpufft_transform_t;
 
-typedef void* gpufft_handle_t;
-typedef cl::sycl::queue* gpufft_stream_t;
-
 typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
                                      oneapi::mkl::dft::domain::REAL>
   gpufft_double_descriptor_t;
 typedef oneapi::mkl::dft::descriptor<oneapi::mkl::dft::precision::DOUBLE,
                                      oneapi::mkl::dft::domain::REAL>
   gpufft_single_descriptor_t;
+
+typedef gpufft_double_descriptor_t* gpufft_handle_t;
+
+typedef cl::sycl::queue* gpufft_stream_t;
 
 typedef double gpufft_double_real_t;
 typedef float gpufft_real_t;
