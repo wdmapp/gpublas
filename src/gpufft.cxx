@@ -41,13 +41,16 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
   desc); assert(result == rocfft_success);
   */
 #elif defined(GTENSOR_DEVICE_SYCL)
-  /*
-  if (type == GPUFFT_R2C || type == GPUFFT_C2R) {
-    auto h = new gpufft_single_handle_t(dims);
-  } else if (type == GPUFFT_D2Z || type == GPUFFT_Z2D) {
-    auto h = new gpufft_double_descriptor_t(dims);
+  std::int64_t fwd_distance, bwd_distance;
+
+  if (type == GPUFFT_R2C || type == GPUFFT_D2Z) {
+    fwd_distance = idist;
+    bwd_distance = odist;
+  } else {
+    fwd_distance = odist;
+    bwd_distance = idist;
   }
-  */
+
   gpufft_double_descriptor_t *h;
   try {
     if (rank > 1) {
@@ -56,6 +59,7 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
         dims[i] = n[i];
       }
       assert(dims.size() == rank);
+      h = new gpufft_double_descriptor_t(dims);
     } else {
       h = new gpufft_double_descriptor_t(n[0]);
     }
@@ -69,19 +73,21 @@ void gpufft_plan_many(gpufft_handle_t* handle, int rank, int* n, int istride,
     std::int64_t cstrides[rank+1];
     rstrides[0] = 0;
     cstrides[0] = 0;
-    std::int64_t rs = 1;
-    std::int64_t cs = 1;
+    std::int64_t rs = istride;
+    std::int64_t cs = ostride;
     for (int i = 1; i <= rank; i++) {
       rstrides[i] = rs;
       cstrides[i] = cs;
-      rs *= istride;
-      cs *= ostride;
+      rs *= n[i-1];
+      cs *= n[i-1];
     }
 
     h->set_value(oneapi::mkl::dft::config_param::NUMBER_OF_TRANSFORMS,
                  batchSize);
     h->set_value(oneapi::mkl::dft::config_param::INPUT_STRIDES, rstrides);
     h->set_value(oneapi::mkl::dft::config_param::OUTPUT_STRIDES, cstrides);
+    h->set_value(oneapi::mkl::dft::config_param::FWD_DISTANCE, fwd_distance);
+    h->set_value(oneapi::mkl::dft::config_param::BWD_DISTANCE, bwd_distance);
     h->set_value(oneapi::mkl::dft::config_param::PLACEMENT, DFTI_NOT_INPLACE);
     h->set_value(oneapi::mkl::dft::config_param::CONJUGATE_EVEN_STORAGE,
                  DFTI_COMPLEX_COMPLEX);
