@@ -162,9 +162,17 @@ void gpublas_zgetrf_batched(int n, gpublas_complex_double_t** d_Aarray, int lda,
   auto scratch =
     sycl::malloc_device<gpublas_complex_double_t>(scratch_count, *handle);
 
-  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray[0], lda,
-                                            n * n, d_PivotArray, n, batchSize,
-                                            scratch, scratch_count);
+  // NB: MKL expects a single contiguous array for the batch, as a host
+  // pointer to device memory. Assume linear starting with the first
+  // pointer, and copy it back to the host.
+  gpublas_complex_double_t* d_Aptr;
+  auto memcpy_e =
+    handle->memcpy(&d_Aptr, d_Aarray, sizeof(gpublas_complex_double_t*));
+  memcpy_e.wait();
+
+  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aptr, lda, n * n,
+                                            d_PivotArray, n, batchSize, scratch,
+                                            scratch_count);
   e.wait();
 
   sycl::free(scratch, *handle);
@@ -200,9 +208,21 @@ void gpublas_zgetrs_batched(int n, int nrhs,
   auto scratch =
     sycl::malloc_device<gpublas_complex_double_t>(scratch_count, *handle);
 
+  // NB: MKL expects a single contiguous array for the batch, as a host
+  // pointer to device memory. Assume linear starting with the first
+  // pointer, and copy it back to the host.
+  gpublas_complex_double_t* d_Aptr;
+  gpublas_complex_double_t* d_Bptr;
+  auto memcpy_A =
+    handle->memcpy(&d_Aptr, d_Aarray, sizeof(gpublas_complex_double_t*));
+  memcpy_A.wait();
+  auto memcpy_B =
+    handle->memcpy(&d_Bptr, d_Barray, sizeof(gpublas_complex_double_t*));
+  memcpy_B.wait();
+
   auto e = oneapi::mkl::lapack::getrs_batch(
-    *handle, oneapi::mkl::transpose::nontrans, n, nrhs, d_Aarray[0], lda, n * n,
-    devIpiv, n, d_Barray[0], ldb, n * nrhs, batchSize, scratch, scratch_count);
+    *handle, oneapi::mkl::transpose::nontrans, n, nrhs, d_Aptr, lda, n * n,
+    devIpiv, n, d_Bptr, ldb, n * nrhs, batchSize, scratch, scratch_count);
   e.wait();
 
   sycl::free(scratch, *handle);
@@ -225,11 +245,19 @@ void gpublas_dgetrf_batched(int n, double** d_Aarray, int lda,
   // TODO: exception handling
   auto scratch_count = oneapi::mkl::lapack::getrf_batch_scratchpad_size<double>(
     *handle, n, n, lda, n * n, n, batchSize);
+
   auto scratch = sycl::malloc_device<double>(scratch_count, *handle);
 
-  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aarray[0], lda,
-                                            n * n, d_PivotArray, n, batchSize,
-                                            scratch, scratch_count);
+  // NB: MKL expects a single contiguous array for the batch, as a host
+  // pointer to device memory. Assume linear starting with the first
+  // pointer, and copy it back to the host.
+  double* d_Aptr;
+  auto memcpy_e = handle->memcpy(&d_Aptr, d_Aarray, sizeof(double*));
+  memcpy_e.wait();
+
+  auto e = oneapi::mkl::lapack::getrf_batch(*handle, n, n, d_Aptr, lda, n * n,
+                                            d_PivotArray, n, batchSize, scratch,
+                                            scratch_count);
   e.wait();
 
   sycl::free(scratch, *handle);
@@ -260,10 +288,26 @@ void gpublas_dgetrs_batched(int n, int nrhs, double* const* d_Aarray, int lda,
     *handle, t, n, nrhs, lda, n * n, n, ldb, n, batchSize);
   auto scratch = sycl::malloc_device<double>(scratch_count, *handle);
 
-  auto e = oneapi::mkl::lapack::getrs_batch(
-    *handle, t, n, nrhs, d_Aarray[0], lda, n * n, devIpiv, n, d_Barray[0], ldb,
-    n * nrhs, batchSize, scratch, scratch_count);
-  e.wait();
+  // NB: MKL expects a single contiguous array for the batch, as a host
+  // pointer to device memory. Assume linear starting with the first
+  // pointer, and copy it back to the host.
+  double* d_Aptr;
+  double* d_Bptr;
+  auto memcpy_A = handle->memcpy(&d_Aptr, d_Aarray, sizeof(double*));
+  memcpy_A.wait();
+  auto memcpy_B = handle->memcpy(&d_Bptr, d_Barray, sizeof(double*));
+  memcpy_B.wait();
+
+  try {
+    auto e = oneapi::mkl::lapack::getrs_batch(
+      *handle, t, n, nrhs, d_Aptr, lda, n * n, devIpiv, n, d_Bptr, ldb,
+      n * nrhs, batchSize, scratch, scratch_count);
+    e.wait();
+  } catch (sycl::exception& e) {
+    fprintf(stderr, "getrs_batch failed: %s (%s:%d)\n", e.what(), __FILE__,
+            __LINE__);
+    abort();
+  }
 
   sycl::free(scratch, *handle);
 #endif
